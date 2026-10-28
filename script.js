@@ -82,89 +82,94 @@ const count = document.querySelector("#count");
 const empty = document.querySelector("#empty");
 const clear = document.querySelector("#clear");
 
-const escapeHtml = (texto) => {
-  return String(texto).replace(/[&<>"']/g, (caracter) => {
-    const caracteres = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;"
-    };
-
-    return caracteres[caracter];
-  });
-};
+const escapeHtml = (s) =>
+  String(s).replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  }[c]));
 
 function render() {
-  const busqueda = search.value
-    .trim()
-    .toLocaleLowerCase("es");
+  const q = search.value.trim().toLocaleLowerCase("es");
+  const y = year.value;
 
-  const anioSeleccionado = year.value;
-
-  const resultados = entrevistas.filter((entrevista) => {
+  const items = entrevistas.filter((x) => {
     const coincideAnio =
-      anioSeleccionado === "all" ||
-      String(entrevista.anio) === anioSeleccionado;
+      y === "all" || String(x.anio) === y;
 
-    const contenido = [
-      entrevista.titulo,
-      entrevista.persona,
-      entrevista.autores,
-      entrevista.extra || "",
-      String(entrevista.numero),
-      String(entrevista.anio)
-    ]
-      .join(" ")
-      .toLocaleLowerCase("es");
+    const texto = [
+      x.titulo,
+      x.persona,
+      x.autores,
+      x.extra || "",
+      String(x.numero),
+      String(x.anio)
+    ].join(" ").toLocaleLowerCase("es");
 
-    const coincideBusqueda = contenido.includes(busqueda);
-
-    return coincideAnio && coincideBusqueda;
+    return coincideAnio && texto.includes(q);
   });
 
-  const cantidad = resultados.length;
+  count.textContent =
+    `${String(items.length).padStart(2, "0")} ` +
+    (items.length === 1 ? "entrevista" : "entrevistas");
 
-  count.textContent = `${String(cantidad).padStart(2, "0")} ${
-    cantidad === 1 ? "entrevista" : "entrevistas"
-  }`;
+  empty.hidden = items.length > 0;
 
-  empty.hidden = cantidad > 0;
+  cards.innerHTML = items.map((x) => `
+    <article class="card">
 
-  cards.innerHTML = resultados
-    .map((entrevista) => {
-      const titulo = escapeHtml(entrevista.titulo);
-      const persona = escapeHtml(entrevista.persona);
-      const enlace = escapeHtml(entrevista.enlace);
-      const imagen = escapeHtml(entrevista.imagen);
+      <a
+        class="card-cover"
+        href="${escapeHtml(x.enlace)}"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Abrir entrevista: ${escapeHtml(x.titulo)}"
+      >
+        <img
+          class="card-image"
+          src="${escapeHtml(x.imagen)}"
+          alt="Portada Kōbai, edición ${x.numero}"
+          loading="lazy"
+          decoding="async"
+        >
+      </a>
 
-      return `
+      <div class="body">
+
+        <div class="meta">
+          EDICIÓN ${x.numero} · ${x.anio}
+        </div>
+
+        <h2>${escapeHtml(x.titulo)}</h2>
+
+        <p class="person">
+          ${escapeHtml(x.persona)}
+        </p>
+
+        <p class="author">
+          Por ${escapeHtml(x.autores)}
+          ${x.extra ? `<br>${escapeHtml(x.extra)}` : ""}
+        </p>
+
         <a
-          class="card"
-          href="${enlace}"
+          class="link"
+          href="${escapeHtml(x.enlace)}"
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Leer ${titulo}. ${persona}. Se abre en una pestaña nueva."
-          title="${titulo} — ${persona}"
+          aria-label="Leer ${escapeHtml(x.titulo)}"
         >
-          <img
-            class="card-image"
-            src="${imagen}"
-            alt="Kōbai, edición ${entrevista.numero}: ${titulo}"
-            width="471"
-            height="151"
-            loading="lazy"
-            decoding="async"
-          >
+          Leer entrevista
+          <span class="arrow" aria-hidden="true">↗</span>
         </a>
-      `;
-    })
-    .join("");
+
+      </div>
+    </article>
+  `).join("");
 }
 
 search.addEventListener("input", render);
-
 year.addEventListener("change", render);
 
 clear.addEventListener("click", () => {
